@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AB 測試工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .ab-test {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .ab-test div {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .ab-test textarea {
+            width: 300px;
+            height: 150px;
+            padding: 10px;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        .image-preview {
+            width: 300px;
+            height: 200px;
+            border: 1px solid #ccc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .result {
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AB 測試工具</h1>
+        <div class="ab-test">
+            <div>
+                <div class="image-preview" id="imagePreviewA">圖片預覽 A</div>
+                <input type="file" id="imageInputA" accept="image/*">
+                <textarea id="textA" placeholder="請輸入文案 A"></textarea>
+            </div>
+            <div>
+                <div class="image-preview" id="imagePreviewB">圖片預覽 B</div>
+                <input type="file" id="imageInputB" accept="image/*">
+                <textarea id="textB" placeholder="請輸入文案 B"></textarea>
+            </div>
+        </div>
+        <button id="testButton">開始測試</button>
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        // 圖片預覽功能
+        function handleImagePreview(inputElement, previewElement) {
+            inputElement.addEventListener("change", () => {
+                const file = inputElement.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        previewElement.style.backgroundImage = `url(${e.target.result})`;
+                        previewElement.style.backgroundSize = "cover";
+                        previewElement.style.backgroundPosition = "center";
+                        previewElement.textContent = ""; // 清空文字
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        const imageInputA = document.getElementById("imageInputA");
+        const imagePreviewA = document.getElementById("imagePreviewA");
+        const imageInputB = document.getElementById("imageInputB");
+        const imagePreviewB = document.getElementById("imagePreviewB");
+
+        handleImagePreview(imageInputA, imagePreviewA);
+        handleImagePreview(imageInputB, imagePreviewB);
+
+        // 分析功能
+        document.getElementById("testButton").addEventListener("click", async () => {
+            const textA = document.getElementById("textA").value;
+            const textB = document.getElementById("textB").value;
+
+            if (!textA || !textB) {
+                alert("請確保兩則文案都已填寫！");
+                return;
+            }
+
+            const resultDiv = document.getElementById("result");
+            resultDiv.textContent = "分析中，請稍候...";
+
+            try {
+                const response = await fetch("https://api.openai.com/v1/completions", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer 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"
+                    },
+                    body: JSON.stringify({
+                        model: "gpt-3.5-turbo",
+                        prompt: `以下有兩則文案，請分析它們的優劣並選出更好的文案：
+                        文案 A: ${textA}
+                        文案 B: ${textB}
+                        請提供詳細分析結果。`,
+                        max_tokens: 500
+                    })
+                });
+
+                const data = await response.json();
+                resultDiv.textContent = data.choices[0].text.trim();
+            } catch (error) {
+                resultDiv.textContent = "分析失敗，請稍後再試。";
+                console.error(error);
+            }
+        });
+    </script>
+</body>
+</html>
